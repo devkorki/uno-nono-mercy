@@ -306,9 +306,7 @@ export default function OnlineLobby({ onBack }) {
               )}
 
 
-              <div style={{ marginTop: 14, opacity: 0.75, fontSize: 13 }}>
-                Next step: “Start game” button + server-side game state.
-              </div>
+              
             </div>
           </div>
         )}

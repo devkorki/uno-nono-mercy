@@ -22,9 +22,7 @@ export default function Rules({ onBack }) {
         }}
       >
         <div style={{ fontSize: 26, fontWeight: 900 }}>Rules</div>
-        <div style={{ opacity: 0.85, marginTop: 6 }}>
-          This page documents the rules currently implemented in the app.
-        </div>
+        
 
         <hr style={{ border: 0, borderTop: "1px solid #222", margin: "14px 0" }} />
 
