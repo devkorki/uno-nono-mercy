@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { COLORS, canPlay, cardLabel } from "../shared/rules.js";
 
+
+
+
 function colorStyles(color) {
     switch (color) {
         case "red": return { background: "#3a1212", border: "#a94444" };
@@ -24,6 +27,14 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
     const [chatText, setChatText] = useState("");
     const winnerPid = game?.winnerId;
     const winnerName = winnerPid ? (game.namesById?.[winnerPid] || winnerPid) : null;
+
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 900);
+
+    useEffect(() => {
+        const onResize = () => setIsMobile(window.innerWidth < 900);
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
+    }, []);
 
     function endToLobby() {
         if (!socket) return;
@@ -91,21 +102,67 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
     //     );
     // }
 
+    // function Card({ card, playable, size = "small" }) {
+    //     const isBig = size === "big";
+    //     const w = isBig ? 180 : 96;
+    //     const h = isBig ? 260 : 130;
+    //     const visualPlayable = isBig ? true : playable;
+
+    //     const labelSize = isBig ? 44 : 20;
+    //     const subSize = isBig ? 16 : 11;
+
+    //     const { background, border } = colorStyles(card.color === "wild" ? "wild" : card.color);
+    //     return (
+    //         <button
+    //             onClick={() => visualPlayable && playCard(card)}
+    //             disabled={!visualPlayable}
+
+    //             style={{
+    //                 width: w,
+    //                 height: h,
+    //                 borderRadius: isBig ? 24 : 14,
+    //                 border: `3px solid ${border}`,
+    //                 background,
+    //                 color: "white",
+    //                 opacity: visualPlayable ? 1 : 0.45,
+    //                 cursor: visualPlayable ? "pointer" : "not-allowed",
+
+    //                 fontWeight: 900,
+    //                 display: "flex",
+    //                 alignItems: "center",
+    //                 justifyContent: "center",
+    //             }}
+    //         >
+    //             <div style={{ textAlign: "center" }}>
+    //                 <div style={{ fontSize: labelSize, lineHeight: 1 }}>{cardLabel(card)}</div>
+    //                 <div style={{ fontSize: subSize, opacity: 0.85, marginTop: isBig ? 12 : 6 }}>
+    //                     {card.color === "wild" ? "WILD" : card.color.toUpperCase()}
+    //                 </div>
+    //             </div>
+    //         </button>
+    //     );
+    // }
+
+
     function Card({ card, playable, size = "small" }) {
         const isBig = size === "big";
-        const w = isBig ? 180 : 96;
-        const h = isBig ? 260 : 130;
+        const isMedium = size === "medium";
+
+        const w = isBig ? 160 : isMedium ? (isMobile ? 92 : 100) : 76;
+        const h = isBig ? 240 : isMedium ? (isMobile ? 132 : 140) : 110;
+
+        const labelSize = isBig ? 44 : isMedium ? 22 : 20;
+        const subSize = isBig ? 16 : isMedium ? 12 : 11;
+
+        // Top card should never look “unplayable”
         const visualPlayable = isBig ? true : playable;
 
-        const labelSize = isBig ? 44 : 20;
-        const subSize = isBig ? 16 : 11;
-
         const { background, border } = colorStyles(card.color === "wild" ? "wild" : card.color);
+
         return (
             <button
-                onClick={() => visualPlayable && playCard(card)}
-                disabled={!visualPlayable}
-
+                onClick={() => !isBig && visualPlayable && playCard(card)}
+                disabled={isBig ? true : !visualPlayable}
                 style={{
                     width: w,
                     height: h,
@@ -113,13 +170,14 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                     border: `3px solid ${border}`,
                     background,
                     color: "white",
-                    opacity: visualPlayable ? 1 : 0.45,
-                    cursor: visualPlayable ? "pointer" : "not-allowed",
-
+                    opacity: isBig ? 1 : (visualPlayable ? 1 : 0.45),
+                    cursor: isBig ? "default" : (visualPlayable ? "pointer" : "not-allowed"),
                     fontWeight: 900,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    userSelect: "none",
+                    flex: "0 0 auto", // IMPORTANT for horizontal scroll
                 }}
             >
                 <div style={{ textAlign: "center" }}>
@@ -131,6 +189,7 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
             </button>
         );
     }
+
     function handleQuit() {
         if (!socket) return;
 
@@ -140,74 +199,75 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
     }
 
 
-    {
-        game.gameOver && (
-            <div
-                style={{
-                    position: "fixed",
-                    inset: 0,
-                    background: "rgba(0,0,0,0.75)",
-                    display: "grid",
-                    placeItems: "center",
-                    zIndex: 9999,
-                    padding: 16,
-                }}
-            >
-                <div
-                    style={{
-                        width: "min(520px, 100%)",
-                        background: "#0f0f10",
-                        border: "1px solid #2a2a2a",
-                        borderRadius: 18,
-                        padding: 18,
-                        textAlign: "center",
-                    }}
-                >
-                    <div style={{ fontSize: 26, fontWeight: 1000 }}>Game Over</div>
-
-                    <div style={{ marginTop: 10, fontSize: 16, opacity: 0.9 }}>
-                        {winnerName ? (
-                            <>
-                                Winner: <b>{winnerName}</b>
-                            </>
-                        ) : (
-                            "Winner: —"
-                        )}
-                    </div>
-
-                    <div style={{ marginTop: 10, opacity: 0.85 }}>
-                        {game.message}
-                    </div>
-
-                    <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
-                        <button
-                            onClick={endToLobby}
-                            style={{
-                                padding: "10px 14px",
-                                borderRadius: 12,
-                                border: "1px solid #3a3a3a",
-                                background: "#171717",
-                                color: "white",
-                                cursor: "pointer",
-                                fontWeight: 900,
-                            }}
-                        >
-                            Back to Lobby
-                        </button>
-                    </div>
-
-                    <div style={{ marginTop: 10, fontSize: 12, opacity: 0.65 }}>
-                        (This will return everyone to the lobby.)
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
 
 
     return (
         <div style={{ padding: 16, color: "white", fontFamily: "system-ui", maxWidth: 1300, margin: "0 auto" }}>
+            {
+                game.gameOver && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            inset: 0,
+                            background: "rgba(0,0,0,0.75)",
+                            display: "grid",
+                            placeItems: "center",
+                            zIndex: 9999,
+                            padding: 16,
+                        }}
+                    >
+                        <div
+                            style={{
+                                width: "min(520px, 100%)",
+                                background: "#0f0f10",
+                                border: "1px solid #2a2a2a",
+                                borderRadius: 18,
+                                padding: 18,
+                                textAlign: "center",
+                            }}
+                        >
+                            <div style={{ fontSize: 26, fontWeight: 1000 }}>Game Over</div>
+
+                            <div style={{ marginTop: 10, fontSize: 16, opacity: 0.9 }}>
+                                {winnerName ? (
+                                    <>
+                                        Winner: <b>{winnerName}</b>
+                                    </>
+                                ) : (
+                                    "Winner: —"
+                                )}
+                            </div>
+
+                            <div style={{ marginTop: 10, opacity: 0.85 }}>
+                                {game.message}
+                            </div>
+
+                            <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
+                                <button
+                                    onClick={endToLobby}
+                                    style={{
+                                        padding: "10px 14px",
+                                        borderRadius: 12,
+                                        border: "1px solid #3a3a3a",
+                                        background: "#171717",
+                                        color: "white",
+                                        cursor: "pointer",
+                                        fontWeight: 900,
+                                    }}
+                                >
+                                    Back to Lobby
+                                </button>
+                            </div>
+
+                            <div style={{ marginTop: 10, fontSize: 12, opacity: 0.65 }}>
+                                (This will return everyone to the lobby.)
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+
             <div style={{ background: "#0f0f10", border: "1px solid #2a2a2a", borderRadius: 16, padding: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
                     <div>
@@ -258,7 +318,10 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                 <div
                     style={{
                         display: "grid",
-                        gridTemplateColumns: "360px 1fr 360px",
+                        gridTemplateColumns: isMobile ? "1fr" : "360px 1fr 360px",
+                        gridTemplateRows: isMobile ? "auto auto auto" : "auto",
+                        maxWidth: isMobile ? 420 : "none",
+                        margin: isMobile ? "0 auto" : "0",
                         gap: 14,
                         alignItems: "start",
                     }}
@@ -448,7 +511,16 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                     </div>
 
                     <div style={{ display: "flex", justifyContent: "center" }}>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 12,
+                                overflowX: "auto",
+                                paddingBottom: 8,
+                                WebkitOverflowScrolling: "touch",
+                                justifyContent: isMobile ? "flex-start" : "center",
+                            }}
+                        >
                             {myHand.map((c) => {
                                 const playable =
                                     currentPid === me &&
