@@ -202,7 +202,7 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
 
 
     return (
-        <div style={{ padding: 16, color: "white", fontFamily: "system-ui", maxWidth: 1300, margin: "0 auto" }}>
+        <div style={{ height: "100dvh", overflow: "hidden", padding: 12, color: "white", fontFamily: "system-ui", maxWidth: 1300, margin: "0 auto" }}>
             {
                 game.gameOver && (
                     <div
@@ -425,6 +425,7 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                                         border: "1px solid #333",
                                         background: "#121212",
                                         color: "white",
+                                        fontSize: 16,
                                     }}
                                 />
                                 <button
