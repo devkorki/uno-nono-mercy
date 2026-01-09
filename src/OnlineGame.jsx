@@ -145,50 +145,50 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
 
 
     function Card({ card, playable, size = "small" }) {
-        const isBig = size === "big";
-        const isMedium = size === "medium";
+  const isBig = size === "big";
+  const isMedium = size === "medium";
 
-        const w = isBig ? 160 : isMedium ? (isMobile ? 92 : 100) : 76;
-        const h = isBig ? 240 : isMedium ? (isMobile ? 132 : 140) : 110;
+  const w = isBig ? 160 : isMedium ? (isMobile ? 92 : 100) : 76;
+  const h = isBig ? 240 : isMedium ? (isMobile ? 132 : 140) : 110;
 
-        const labelSize = isBig ? 44 : isMedium ? 22 : 20;
-        const subSize = isBig ? 16 : isMedium ? 12 : 11;
+  const labelSize = isBig ? 44 : isMedium ? 22 : 20;
+  const subSize = isBig ? 16 : isMedium ? 12 : 11;
 
-        // Top card should never look “unplayable”
-        const visualPlayable = isBig ? true : playable;
+  // Top card should never look “unplayable”
+  const visualPlayable = isBig ? true : playable;
 
-        const { background, border } = colorStyles(card.color === "wild" ? "wild" : card.color);
+  const { background, border } = colorStyles(card.color === "wild" ? "wild" : card.color);
 
-        return (
-            <button
-                onClick={() => !isBig && visualPlayable && playCard(card)}
-                disabled={isBig ? true : !visualPlayable}
-                style={{
-                    width: w,
-                    height: h,
-                    borderRadius: isBig ? 24 : 14,
-                    border: `3px solid ${border}`,
-                    background,
-                    color: "white",
-                    opacity: isBig ? 1 : (visualPlayable ? 1 : 0.45),
-                    cursor: isBig ? "default" : (visualPlayable ? "pointer" : "not-allowed"),
-                    fontWeight: 900,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    userSelect: "none",
-                    flex: "0 0 auto", // IMPORTANT for horizontal scroll
-                }}
-            >
-                <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: labelSize, lineHeight: 1 }}>{cardLabel(card)}</div>
-                    <div style={{ fontSize: subSize, opacity: 0.85, marginTop: isBig ? 12 : 6 }}>
-                        {card.color === "wild" ? "WILD" : card.color.toUpperCase()}
-                    </div>
-                </div>
-            </button>
-        );
-    }
+  return (
+    <button
+      onClick={() => !isBig && visualPlayable && playCard(card)}
+      disabled={isBig ? true : !visualPlayable}
+      style={{
+        width: w,
+        height: h,
+        borderRadius: isBig ? 24 : 14,
+        border: `3px solid ${border}`,
+        background,
+        color: "white",
+        opacity: isBig ? 1 : (visualPlayable ? 1 : 0.45),
+        cursor: isBig ? "default" : (visualPlayable ? "pointer" : "not-allowed"),
+        fontWeight: 900,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        userSelect: "none",
+        flex: "0 0 auto", // IMPORTANT for horizontal scroll
+      }}
+    >
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: labelSize, lineHeight: 1 }}>{cardLabel(card)}</div>
+        <div style={{ fontSize: subSize, opacity: 0.85, marginTop: isBig ? 12 : 6 }}>
+          {card.color === "wild" ? "WILD" : card.color.toUpperCase()}
+        </div>
+      </div>
+    </button>
+  );
+}
 
     function handleQuit() {
         if (!socket) return;
@@ -202,7 +202,7 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
 
 
     return (
-        <div style={{ height: "100dvh", overflow: "hidden", padding: 12, color: "white", fontFamily: "system-ui", maxWidth: 1300, margin: "0 auto" }}>
+        <div style={{ padding: 16, color: "white", fontFamily: "system-ui", maxWidth: 1300, margin: "0 auto" }}>
             {
                 game.gameOver && (
                     <div
@@ -320,8 +320,6 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                         display: "grid",
                         gridTemplateColumns: isMobile ? "1fr" : "360px 1fr 360px",
                         gridTemplateRows: isMobile ? "auto auto auto" : "auto",
-                        maxWidth: isMobile ? 420 : "none",
-                        margin: isMobile ? "0 auto" : "0",
                         gap: 14,
                         alignItems: "start",
                     }}
@@ -425,7 +423,6 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                                         border: "1px solid #333",
                                         background: "#121212",
                                         color: "white",
-                                        fontSize: 16,
                                     }}
                                 />
                                 <button
