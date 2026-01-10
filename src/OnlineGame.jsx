@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { COLORS, canPlay, cardLabel } from "../shared/rules.js";
+
 
 
 
@@ -19,10 +20,21 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
     const myHand = game?.hands?.[me] || [];
     const currentPid = game.playerOrder[game.turnIndex];
 
+    const canInteract =
+        currentPid === me &&
+        !game.awaiting;
+
+    const awaiting = game?.awaiting;
+    const isMyChoice = awaiting && awaiting.actorId === me;
+    const lockedByChoice = Boolean(game.awaiting) && !(game.awaiting.actorId === me);
+    const iAmChoosing = Boolean(game.awaiting) && (game.awaiting.actorId === me);
+
+
     const myName = game.namesById?.[me] || me;
     const currentName = game.namesById?.[currentPid] || currentPid;
-
-    const [chooseWild, setChooseWild] = useState(null); // { cardId }
+    const chatEndRef = useRef(null);
+    // const [chooseSwap, setChooseSwap] = useState(null);
+    // const [chooseWild, setChooseWild] = useState(null); // { cardId }
     const [chat, setChat] = useState([]);
     const [chatText, setChatText] = useState("");
     const winnerPid = game?.winnerId;
@@ -35,6 +47,22 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
         window.addEventListener("resize", onResize);
         return () => window.removeEventListener("resize", onResize);
     }, []);
+
+
+    // useEffect(() => {
+    //     if (game?._needsSwap && game?._swapFrom === me) {
+    //         setChooseSwap({ cardId: game._swapCardId });
+    //     }
+    // }, [game, me]);
+
+
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "end",
+        });
+    }, [chat]);
+
 
     function endToLobby() {
         if (!socket) return;
@@ -60,23 +88,68 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
     }
 
 
+    // function confirmSwap(targetPid) {
+    //     socket.emit("game:action", {
+    //         code: roomCode,
+    //         action: {
+    //             type: "play",
+    //             cardId: chooseSwap.cardId,
+    //             swapWith: targetPid,
+    //         },
+    //     });
+    //     setChooseSwap(null);
+    // }
+
+
+    function resolveWild(color) {
+        socket.emit("game:action", { code: roomCode, action: { type: "resolve:wild", chosenColor: color } }, () => { });
+    }
+
+    function resolveSwap7(targetId) {
+        socket.emit("game:action", { code: roomCode, action: { type: "resolve:swap7", swapWith: targetId } }, () => { });
+    }
+
+
 
     function send(action) {
         socket.emit("game:action", { code: roomCode, action }, () => { });
     }
 
+    // function playCard(card) {
+    //     if (card.kind === "wild" || card.kind === "wild_draw4") {
+    //         setChooseWild({ cardId: card.id });
+    //     } else {
+    //         send({ type: "play", cardId: card.id });
+    //     }
+    // }
+
+    // function playCard(card) {
+    //     // WILD
+    //     if (card.kind === "wild" || card.kind === "wild_draw4") {
+    //         setChooseWild({ cardId: card.id });
+    //         return;
+    //     }
+
+    //     // 7 rule (choose target first)
+    //     if (card.kind === "num" && card.value === 7) {
+    //         setChooseSwap({ cardId: card.id });
+    //         return;
+    //     }
+
+    //     // normal play
+    //     send({ type: "play", cardId: card.id });
+    // }
+
     function playCard(card) {
-        if (card.kind === "wild" || card.kind === "wild_draw4") {
-            setChooseWild({ cardId: card.id });
-        } else {
-            send({ type: "play", cardId: card.id });
-        }
+        send({ type: "play", cardId: card.id });
     }
 
-    function confirmWild(color) {
-        send({ type: "play", cardId: chooseWild.cardId, chosenColor: color });
-        setChooseWild(null);
-    }
+
+
+    // function confirmWild(color) {
+    //     send({ type: "play", cardId: chooseWild.cardId, chosenColor: color });
+    //     setChooseWild(null);
+    // }
 
     // function Card({ card, playable }) {
     //     const { background, border } = colorStyles(card.color === "wild" ? "wild" : card.color);
@@ -145,50 +218,51 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
 
 
     function Card({ card, playable, size = "small" }) {
-  const isBig = size === "big";
-  const isMedium = size === "medium";
+        const isBig = size === "big";
+        const isMedium = size === "medium";
 
-  const w = isBig ? 160 : isMedium ? (isMobile ? 92 : 100) : 76;
-  const h = isBig ? 240 : isMedium ? (isMobile ? 132 : 140) : 110;
+        const w = isBig ? 160 : isMedium ? (isMobile ? 92 : 100) : 76;
+        const h = isBig ? 240 : isMedium ? (isMobile ? 132 : 140) : 110;
 
-  const labelSize = isBig ? 44 : isMedium ? 22 : 20;
-  const subSize = isBig ? 16 : isMedium ? 12 : 11;
+        const labelSize = isBig ? 44 : isMedium ? 22 : 20;
+        const subSize = isBig ? 16 : isMedium ? 12 : 11;
 
-  // Top card should never look “unplayable”
-  const visualPlayable = isBig ? true : playable;
+        // Top card should never look “unplayable”
+        // const visualPlayable = isBig ? true : playable;
+        const visualPlayable = isBig ? true : (playable && canInteract);
 
-  const { background, border } = colorStyles(card.color === "wild" ? "wild" : card.color);
+        const { background, border } = colorStyles(card.color === "wild" ? "wild" : card.color);
 
-  return (
-    <button
-      onClick={() => !isBig && visualPlayable && playCard(card)}
-      disabled={isBig ? true : !visualPlayable}
-      style={{
-        width: w,
-        height: h,
-        borderRadius: isBig ? 24 : 14,
-        border: `3px solid ${border}`,
-        background,
-        color: "white",
-        opacity: isBig ? 1 : (visualPlayable ? 1 : 0.45),
-        cursor: isBig ? "default" : (visualPlayable ? "pointer" : "not-allowed"),
-        fontWeight: 900,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        userSelect: "none",
-        flex: "0 0 auto", // IMPORTANT for horizontal scroll
-      }}
-    >
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: labelSize, lineHeight: 1 }}>{cardLabel(card)}</div>
-        <div style={{ fontSize: subSize, opacity: 0.85, marginTop: isBig ? 12 : 6 }}>
-          {card.color === "wild" ? "WILD" : card.color.toUpperCase()}
-        </div>
-      </div>
-    </button>
-  );
-}
+        return (
+            <button
+                onClick={() => !isBig && visualPlayable && playCard(card)}
+                disabled={isBig ? true : !visualPlayable}
+                style={{
+                    width: w,
+                    height: h,
+                    borderRadius: isBig ? 24 : 14,
+                    border: `3px solid ${border}`,
+                    background,
+                    color: "white",
+                    opacity: isBig ? 1 : (visualPlayable ? 1 : 0.45),
+                    cursor: isBig ? "default" : (visualPlayable ? "pointer" : "not-allowed"),
+                    fontWeight: 900,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    userSelect: "none",
+                    flex: "0 0 auto", // IMPORTANT for horizontal scroll
+                }}
+            >
+                <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: labelSize, lineHeight: 1 }}>{cardLabel(card)}</div>
+                    <div style={{ fontSize: subSize, opacity: 0.85, marginTop: isBig ? 12 : 6 }}>
+                        {card.color === "wild" ? "WILD" : card.color.toUpperCase()}
+                    </div>
+                </div>
+            </button>
+        );
+    }
 
     function handleQuit() {
         if (!socket) return;
@@ -386,6 +460,8 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                                 display: "flex",
                                 flexDirection: "column",
                                 minHeight: 320,
+                                height: isMobile ? 260 : 320,
+                                maxHeight: isMobile ? 260 : 320
                             }}
                         >
                             <div style={{ fontWeight: 900, marginBottom: 8 }}>Chat</div>
@@ -394,6 +470,7 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                             <div
                                 style={{
                                     flex: 1,
+                                    minHeight: 0,
                                     overflowY: "auto",
                                     display: "flex",
                                     flexDirection: "column",
@@ -407,6 +484,30 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                                         <span style={{ opacity: 0.9 }}>{m.text}</span>
                                     </div>
                                 ))}
+
+
+                                <div
+                                    style={{
+                                        flex: 1,
+                                        minHeight: 0,
+                                        overflowY: "auto",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 6,
+                                        marginBottom: 8,
+                                        paddingRight: 6,
+                                    }}
+                                >
+                                    {chat.map((m) => (
+                                        <div key={m.id} style={{ fontSize: 13 }}>
+                                            <b>{m.name}</b>: <span style={{ opacity: 0.9 }}>{m.text}</span>
+                                        </div>
+                                    ))}
+
+                                    {/* 👇 auto-scroll anchor */}
+                                    <div ref={chatEndRef} />
+                                </div>
+
                             </div>
 
                             {/* Input */}
@@ -538,9 +639,123 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                 </div>
 
             </div>
+            {/*Swap modal */}
+            {/* {chooseSwap && (
+                <div
+                    style={{
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(0,0,0,0.7)",
+                        display: "grid",
+                        placeItems: "center",
+                        zIndex: 9999,
+                        padding: 16,
+                    }}
+                >
+                    <div
+                        style={{
+                            width: "min(420px, 100%)",
+                            background: "#0f0f10",
+                            border: "1px solid #2a2a2a",
+                            borderRadius: 18,
+                            padding: 18,
+                        }}
+                    >
+                        <div style={{ fontWeight: 900, marginBottom: 12 }}>
+                            Choose a player to swap hands with
+                        </div>
+
+                        <div style={{ display: "grid", gap: 8 }}>
+                            {game.playerOrder
+                                .filter(
+                                    (pid) => pid !== me && !game.eliminated[pid]
+                                )
+                                .map((pid) => (
+                                    <button
+                                        key={pid}
+                                        onClick={() => confirmSwap(pid)}
+                                        style={{
+                                            padding: "10px 14px",
+                                            borderRadius: 12,
+                                            border: "1px solid #3a3a3a",
+                                            background: "#171717",
+                                            color: "white",
+                                            fontWeight: 800,
+                                            cursor: "pointer",
+                                        }}
+                                    >
+                                        {game.namesById?.[pid] || pid}
+                                    </button>
+                                ))}
+                        </div>
+                    </div>
+                </div>
+            )} */}
+
+
+            {isMyChoice && awaiting.type === "wild" && (
+                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "grid", placeItems: "center", zIndex: 9999 }}>
+                    <div style={{ background: "#0f0f10", border: "1px solid #2a2a2a", borderRadius: 16, padding: 14, width: 360 }}>
+                        <div style={{ fontWeight: 900, marginBottom: 10 }}>Choose a color</div>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            {COLORS.map((c) => (
+                                <button
+                                    key={c}
+                                    onClick={() => resolveWild(c)}
+                                    style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #3a3a3a", background: "#171717", color: "white" }}
+                                >
+                                    {c.toUpperCase()}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
+            {isMyChoice && awaiting.type === "swap7" && (
+                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "grid", placeItems: "center", zIndex: 9999 }}>
+                    <div style={{ background: "#0f0f10", border: "1px solid #2a2a2a", borderRadius: 16, padding: 14, width: 420 }}>
+                        <div style={{ fontWeight: 900, marginBottom: 10 }}>Swap hands with…</div>
+
+                        <div style={{ display: "grid", gap: 8 }}>
+                            {game.playerOrder
+                                .filter((pid) => pid !== me && !game.eliminated[pid])
+                                .map((pid) => {
+                                    const nm = game.namesById?.[pid] || pid;
+                                    return (
+                                        <button
+                                            key={pid}
+                                            onClick={() => resolveSwap7(pid)}
+                                            style={{
+                                                padding: "10px 14px",
+                                                borderRadius: 12,
+                                                border: "1px solid #3a3a3a",
+                                                background: "#171717",
+                                                color: "white",
+                                                textAlign: "left",
+                                                cursor: "pointer",
+                                                fontWeight: 800,
+                                            }}
+                                        >
+                                            {nm}
+                                        </button>
+                                    );
+                                })}
+                        </div>
+
+                        <div style={{ marginTop: 10, fontSize: 12, opacity: 0.65 }}>
+                            (You must choose someone to continue.)
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
+
 
             {/* Wild modal */}
-            {chooseWild && (
+            {/* {chooseWild && (
                 <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "grid", placeItems: "center" }}>
                     <div style={{ background: "#0f0f10", border: "1px solid #2a2a2a", borderRadius: 16, padding: 14, width: 360 }}>
                         <div style={{ fontWeight: 900, marginBottom: 10 }}>Choose a color</div>
@@ -563,7 +778,7 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                         </div>
                     </div>
                 </div>
-            )}
+            )} */}
         </div>
     );
 }
