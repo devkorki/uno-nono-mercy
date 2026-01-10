@@ -59,6 +59,10 @@ export default function OnlineLobby({ onBack }) {
 
     s.on("game:state", (g) => setGame(g));
 
+    s.on("room:lobby", () => {
+      setGame(null);
+    });
+
 
     return () => {
       s.disconnect();
@@ -306,7 +310,7 @@ export default function OnlineLobby({ onBack }) {
               )}
 
 
-              
+
             </div>
           </div>
         )}

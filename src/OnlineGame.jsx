@@ -29,6 +29,7 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
     const lockedByChoice = Boolean(game.awaiting) && !(game.awaiting.actorId === me);
     const iAmChoosing = Boolean(game.awaiting) && (game.awaiting.actorId === me);
 
+    const [previewCard, setPreviewCard] = useState(null);
 
     const myName = game.namesById?.[me] || me;
     const currentName = game.namesById?.[currentPid] || currentPid;
@@ -41,6 +42,8 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
     const winnerName = winnerPid ? (game.namesById?.[winnerPid] || winnerPid) : null;
 
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < 900);
+
+    const [hoveredId, setHoveredId] = useState(null);
 
     useEffect(() => {
         const onResize = () => setIsMobile(window.innerWidth < 900);
@@ -217,18 +220,245 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
     // }
 
 
-    function Card({ card, playable, size = "small" }) {
+    // function Card({ card, playable, size = "small" }) {
+    //     const isBig = size === "big";
+    //     const isMedium = size === "medium";
+
+    //     const w = isBig ? 160 : isMedium ? (isMobile ? 92 : 100) : 76;
+    //     const h = isBig ? 240 : isMedium ? (isMobile ? 132 : 140) : 110;
+
+    //     const labelSize = isBig ? 44 : isMedium ? 22 : 20;
+    //     const subSize = isBig ? 16 : isMedium ? 12 : 11;
+
+    //     // Top card should never look “unplayable”
+    //     // const visualPlayable = isBig ? true : playable;
+    //     const visualPlayable = isBig ? true : (playable && canInteract);
+
+    //     const { background, border } = colorStyles(card.color === "wild" ? "wild" : card.color);
+
+    //     return (
+    //         <button
+    //             onClick={() => !isBig && visualPlayable && playCard(card)}
+    //             disabled={isBig ? true : !visualPlayable}
+    //             style={{
+    //                 width: w,
+    //                 height: h,
+    //                 borderRadius: isBig ? 24 : 14,
+    //                 border: `3px solid ${border}`,
+    //                 background,
+    //                 color: "white",
+    //                 opacity: isBig ? 1 : (visualPlayable ? 1 : 0.45),
+    //                 cursor: isBig ? "default" : (visualPlayable ? "pointer" : "not-allowed"),
+    //                 fontWeight: 900,
+    //                 display: "flex",
+    //                 alignItems: "center",
+    //                 justifyContent: "center",
+    //                 userSelect: "none",
+    //                 flex: "0 0 auto", // IMPORTANT for horizontal scroll
+    //             }}
+    //         >
+    //             <div style={{ textAlign: "center" }}>
+    //                 <div style={{ fontSize: labelSize, lineHeight: 1 }}>{cardLabel(card)}</div>
+    //                 <div style={{ fontSize: subSize, opacity: 0.85, marginTop: isBig ? 12 : 6 }}>
+    //                     {card.color === "wild" ? "WILD" : card.color.toUpperCase()}
+    //                 </div>
+    //             </div>
+    //         </button>
+    //     );
+    // }
+
+
+    // function Card({ card, playable, size = "small", style, focused = false, onMouseEnter, onMouseLeave }) {
+    //     const isBig = size === "big";
+    //     const isMedium = size === "medium";
+
+
+    //     // const showCenter = isBig || !!focused;
+    //     const showCenter = isBig;
+    //     const showCorners = true;
+    //     const w = isBig ? 160 : isMedium ? (isMobile ? 92 : 100) : 76;
+    //     const h = isBig ? 240 : isMedium ? (isMobile ? 132 : 140) : 110;
+
+    //     const labelSize = isBig ? 44 : isMedium ? 22 : 20;
+    //     const subSize = isBig ? 16 : isMedium ? 12 : 11;
+
+    //     const visualPlayable = isBig ? true : (playable && canInteract);
+    //     const { background, border } = colorStyles(card.color === "wild" ? "wild" : card.color);
+
+    //     return (
+    //         <button
+    //             onClick={() => !isBig && visualPlayable && playCard(card)}
+    //             disabled={isBig ? true : !visualPlayable}
+    //             onMouseEnter={onMouseEnter}
+    //             onMouseLeave={onMouseLeave}
+    //             style={{
+    //                 width: w,
+    //                 height: h,
+    //                 borderRadius: isBig ? 24 : 14,
+    //                 border: `3px solid ${border}`,
+    //                 background,
+    //                 color: "white",
+    //                 opacity: isBig ? 1 : (visualPlayable ? 1 : 0.45),
+    //                 cursor: isBig ? "default" : (visualPlayable ? "pointer" : "not-allowed"),
+    //                 fontWeight: 900,
+    //                 display: "flex",
+    //                 alignItems: "center",
+    //                 justifyContent: "center",
+    //                 userSelect: "none",
+    //                 flex: "0 0 auto",
+
+    //                 textShadow: "0 1px 3px rgba(0,0,0,0.6)",
+    //                 transition: "transform 140ms ease, box-shadow 140ms ease",
+    //                 ...style,
+    //             }}
+    //         >
+    //             {/* <div style={{ textAlign: "center" }}>
+    //                 <div style={{ fontSize: labelSize, lineHeight: 1 }}>{cardLabel(card)}</div>
+    //                 <div style={{ fontSize: subSize, opacity: 0.85, marginTop: isBig ? 12 : 6 }}>
+    //                     {card.color === "wild" ? "WILD" : card.color.toUpperCase()}
+    //                 </div>
+    //             </div> */}
+
+
+    //             <div style={{ position: "relative", width: "100%", height: "100%" }}>
+    //                 {/* TOP-LEFT INDEX */}
+    //                 {card.kind !== "wild" && (
+    //                     <div
+    //                         style={{
+    //                             position: "absolute",
+    //                             top: 8,
+    //                             left: 10,
+    //                             fontSize: isMobile ? 12 : 14,
+
+    //                             fontWeight: 900,
+    //                             opacity: 0.95,
+    //                         }}
+    //                     >
+    //                         {cardLabel(card)}
+    //                     </div>
+    //                 )}
+
+    //                 {/* CENTER BIG LABEL */}
+    //                 {/* <div
+    //                     style={{
+    //                         position: "absolute",
+    //                         inset: 0,
+    //                         display: "flex",
+    //                         alignItems: "center",
+    //                         justifyContent: "center",
+    //                         textAlign: "center",
+    //                         pointerEvents: "none",
+    //                     }}
+    //                 >
+    //                     <div>
+    //                         <div style={{ fontSize: labelSize, lineHeight: 1 }}>
+    //                             {cardLabel(card)}
+    //                         </div>
+    //                         <div
+    //                             style={{
+    //                                 fontSize: subSize,
+    //                                 opacity: 0.85,
+    //                                 marginTop: isBig ? 12 : 6,
+    //                             }}
+    //                         >
+    //                             {card.color === "wild" ? "WILD" : card.color.toUpperCase()}
+    //                         </div>
+    //                     </div>
+    //                 </div> */}
+
+    //                 {showCenter && (
+    //                     <div
+    //                         style={{
+    //                             position: "absolute",
+    //                             inset: 0,
+    //                             display: "flex",
+    //                             alignItems: "center",
+    //                             justifyContent: "center",
+    //                             textAlign: "center",
+    //                             pointerEvents: "none",
+    //                             opacity: isBig ? 1 : 0.9,
+    //                         }}
+    //                     >
+    //                         <div>
+    //                             <div style={{ fontSize: labelSize, lineHeight: 1 }}>{cardLabel(card)}</div>
+    //                             <div style={{ fontSize: subSize, opacity: 0.85, marginTop: isBig ? 12 : 6 }}>
+    //                                 {card.color === "wild" ? "WILD" : card.color.toUpperCase()}
+    //                             </div>
+    //                         </div>
+    //                     </div>
+    //                 )}
+
+
+    //                 {/* BOTTOM-RIGHT INDEX (ROTATED) */}
+    //                 {card.kind !== "wild" && (
+    //                     <div
+    //                         style={{
+    //                             position: "absolute",
+    //                             bottom: 8,
+    //                             right: 10,
+    //                             fontSize: isMobile ? 12 : 14,
+    //                             fontWeight: 900,
+    //                             opacity: 0.95,
+    //                             transform: "rotate(180deg)",
+    //                         }}
+    //                     >
+    //                         {cardLabel(card)}
+    //                     </div>
+    //                 )}
+    //             </div>
+
+    //         </button>
+    //     );
+    // }
+
+    function Card({
+        card,
+        playable,
+        size = "small", // "big" | "hand" | "small"
+        style,
+        onMouseEnter,
+        onMouseLeave,
+    }) {
         const isBig = size === "big";
-        const isMedium = size === "medium";
+        const isHand = size === "hand";
 
-        const w = isBig ? 160 : isMedium ? (isMobile ? 92 : 100) : 76;
-        const h = isBig ? 240 : isMedium ? (isMobile ? 132 : 140) : 110;
+        // Dynamic shrink based on how many cards you have (ONLY for hand cards)
+        const handCount = myHand.length;
+        const handScale =
+            handCount <= 8 ? 1 :
+                handCount <= 12 ? 0.92 :
+                    handCount <= 16 ? 0.85 :
+                        handCount <= 22 ? 0.78 :
+                            0.70;
 
-        const labelSize = isBig ? 44 : isMedium ? 22 : 20;
-        const subSize = isBig ? 16 : isMedium ? 12 : 11;
+        const baseHandW = isMobile ? 92 : 100;
+        const baseHandH = isMobile ? 132 : 140;
 
-        // Top card should never look “unplayable”
-        // const visualPlayable = isBig ? true : playable;
+        const w = isBig
+            ? 160
+            : isHand
+                ? Math.round(baseHandW * handScale)
+                : 76;
+
+        const h = isBig
+            ? 240
+            : isHand
+                ? Math.round(baseHandH * handScale)
+                : 110;
+
+        const labelSize = isBig
+            ? 44
+            : isHand
+                ? Math.round(22 * handScale)
+                : 20;
+
+        const subSize = isBig
+            ? 16
+            : isHand
+                ? Math.round(12 * handScale)
+                : 11;
+
+        // Only interact when it's your turn and not locked by a choice
         const visualPlayable = isBig ? true : (playable && canInteract);
 
         const { background, border } = colorStyles(card.color === "wild" ? "wild" : card.color);
@@ -237,6 +467,8 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
             <button
                 onClick={() => !isBig && visualPlayable && playCard(card)}
                 disabled={isBig ? true : !visualPlayable}
+                onMouseEnter={onMouseEnter}
+                onMouseLeave={onMouseLeave}
                 style={{
                     width: w,
                     height: h,
@@ -251,11 +483,16 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                     alignItems: "center",
                     justifyContent: "center",
                     userSelect: "none",
-                    flex: "0 0 auto", // IMPORTANT for horizontal scroll
+                    flex: "0 0 auto",
+                    transition: "transform 140ms ease, box-shadow 140ms ease",
+                    ...style,
                 }}
             >
+                {/* ORIGINAL center-only label */}
                 <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: labelSize, lineHeight: 1 }}>{cardLabel(card)}</div>
+                    <div style={{ fontSize: labelSize, lineHeight: 1 }}>
+                        {cardLabel(card)}
+                    </div>
                     <div style={{ fontSize: subSize, opacity: 0.85, marginTop: isBig ? 12 : 6 }}>
                         {card.color === "wild" ? "WILD" : card.color.toUpperCase()}
                     </div>
@@ -263,6 +500,8 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
             </button>
         );
     }
+
+
 
     function handleQuit() {
         if (!socket) return;
@@ -315,6 +554,24 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                             <div style={{ marginTop: 10, opacity: 0.85 }}>
                                 {game.message}
                             </div>
+                            {/* 
+                            <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
+                                <button
+                                    onClick={endToLobby}
+                                    style={{
+                                        padding: "10px 14px",
+                                        borderRadius: 12,
+                                        border: "1px solid #3a3a3a",
+                                        background: "#171717",
+                                        color: "white",
+                                        cursor: "pointer",
+                                        fontWeight: 900,
+                                    }}
+                                >
+                                    Back to Lobby
+                                </button>
+                            </div> */}
+
 
                             <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
                                 <button
@@ -330,6 +587,21 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                                     }}
                                 >
                                     Back to Lobby
+                                </button>
+
+                                <button
+                                    onClick={handleQuit}
+                                    style={{
+                                        padding: "10px 14px",
+                                        borderRadius: 12,
+                                        border: "1px solid #3a3a3a",
+                                        background: "#171717",
+                                        color: "white",
+                                        cursor: "pointer",
+                                        fontWeight: 900,
+                                    }}
+                                >
+                                    Leave to Lobby
                                 </button>
                             </div>
 
@@ -354,7 +626,8 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                         <div style={{ opacity: 0.85, marginTop: 4 }}>
                             Turn: <b>{currentPid === me ? "YOU" : currentName}</b>
                             · Color: <b>{game.currentColor}</b> · Stack:{" "}
-                            <b>{game.pendingDraw.amount > 0 ? `+${game.pendingDraw.amount} (${game.pendingDraw.kind})` : "None"}</b>
+                            <b>{game.pendingDraw.amount > 0 ? `+${game.pendingDraw.amount} (min +${game.pendingDraw.min})` : "None"}</b>
+
                         </div>
                     </div>
 
@@ -609,7 +882,7 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                         </div>
                     </div>
 
-                    <div style={{ display: "flex", justifyContent: "center" }}>
+                    {/* <div style={{ display: "flex", justifyContent: "center" }}>
                         <div
                             style={{
                                 display: "flex",
@@ -635,7 +908,126 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                                 );
                             })}
                         </div>
+                    </div> */}
+
+
+                    {previewCard && (
+                        <div
+                            style={{
+                                display: "grid",
+                                placeItems: "center",
+                                marginBottom: 12,
+                            }}
+                        >
+                            <Card card={previewCard} playable={false} size="big" />
+                        </div>
+                    )}
+
+                    {/* <div style={{ display: "flex", justifyContent: "center" }}>
+                        <div
+                            style={{
+                                width: "min(1100px, 100%)",
+                                overflowX: "auto",
+                                paddingBottom: 12,
+                                WebkitOverflowScrolling: "touch",
+                            }}
+                        >
+                            <div
+                                style={{
+                                    position: "relative",
+                                    height: isMobile ? 150 : 160, // fixed height for hand row
+                                    // width: Math.max(
+                                    //     320,
+                                    //     // overlap math: baseWidth + step*(n-1)
+                                    //     (isMobile ? 92 : 100) + (myHand.length - 1) * (isMobile ? 24 : 28)
+                                    // ),
+
+                                    width: Math.max(
+                                        320,
+                                        (isMobile ? 92 : 100) + (myHand.length - 1) * (isMobile ? 40 : 48)
+                                    ),
+                                    margin: "0 auto",
+                                }}
+                            >
+                                {myHand.map((c, i) => {
+                                    const playable =
+                                        currentPid === me &&
+                                        canPlay(c, topCard, game.currentColor, game.pendingDraw);
+
+                                    const step = isMobile ? 40 : 48; // smaller => more overlap
+                                    const left = i * step;
+
+                                    const isHovered = hoveredId === c.id;
+
+                                    // zIndex: hovered card on top, otherwise natural stacking
+                                    const z = isHovered ? 999 : i;
+
+                                    const mid = (myHand.length - 1) / 2;
+                                    const angle = (i - mid) * 1.0; // degrees
+
+                                    return (
+                                        <Card
+                                            key={c.id}
+                                            card={c}
+                                            playable={playable}
+                                            size="medium"
+                                            focused={false}
+                                            onMouseEnter={() => {
+                                                setHoveredId(c.id);
+                                                setPreviewCard(c);
+                                            }}
+                                            onMouseLeave={() => {
+                                                setHoveredId(null);
+                                                setPreviewCard(null);
+                                            }}
+                                            style={{
+                                                position: "absolute",
+                                                left,
+                                                bottom: 0,
+                                                zIndex: isHovered ? 999 : i,
+                                                transform: playable && isHovered ? "translateY(-22px) scale(1.05)" : "translateY(0px)",
+                                                transformOrigin: "bottom center",
+                                            }}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
+ */}
+
+
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 10,
+                                overflowX: "auto",
+                                paddingBottom: 8,
+                                WebkitOverflowScrolling: "touch",
+                                justifyContent: isMobile ? "flex-start" : "center",
+                                alignItems: "flex-end",
+                                maxWidth: "100%",
+                            }}
+                        >
+                            {myHand.map((c) => {
+                                const playable =
+                                    currentPid === me &&
+                                    canPlay(c, topCard, game.currentColor, game.pendingDraw);
+
+                                return (
+                                    <Card
+                                        key={c.id}
+                                        card={c}
+                                        playable={playable}
+                                        size="hand"
+                                    />
+                                );
+                            })}
+                        </div>
+                    </div>
+
+
                 </div>
 
             </div>

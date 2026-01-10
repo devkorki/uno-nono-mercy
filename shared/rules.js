@@ -58,7 +58,13 @@ export function cardLabel(c) {
 }
 
 export function canPlay(card, topCard, currentColor, pendingDraw) {
-    if (pendingDraw.amount > 0) return card.kind === pendingDraw.kind;
+    // if (pendingDraw.amount > 0) return card.kind === pendingDraw.kind;
+
+    if (pendingDraw.amount > 0) {
+        if (!isDrawKind(card.kind)) return false;
+        return drawAmountForKind(card.kind) >= (pendingDraw.min || 0);
+    }
+
     if (card.kind === "wild" || card.kind === "wild_draw4") return true;
     if (!topCard) return true;
     if (card.color === currentColor) return true;
@@ -100,7 +106,8 @@ export function initGameForPlayers(playerIds, namesById = {}) {
         turnIndex: 0,
         direction: 1,
         currentColor: "red",
-        pendingDraw: { kind: null, amount: 0 },
+        // pendingDraw: { kind: null, amount: 0 },
+        pendingDraw: { amount: 0, min: 0 },
         saidUNO,
         eliminated,
         message: "Game started!",
@@ -198,16 +205,35 @@ function applyElimination(state, pid) {
     }
 }
 
+// function drawMany(state, pid, count) {
+//     for (let i = 0; i < count; i++) {
+//         state = drawOne(state);
+//         const c = state._drawnCard;
+//         delete state._drawnCard;
+//         if (!c) break;
+//         state.hands[pid].push(c);
+//     }
+//     applyElimination(state, pid);
+//     return state;
+// }
+
 function drawMany(state, pid, count) {
+    let s = state;
+    let drawn = 0;
+
     for (let i = 0; i < count; i++) {
-        state = drawOne(state);
-        const c = state._drawnCard;
-        delete state._drawnCard;
+        s = drawOne(s);
+        const c = s._drawnCard;
+        delete s._drawnCard;
+
         if (!c) break;
-        state.hands[pid].push(c);
+
+        s.hands[pid].push(c);
+        drawn++;
     }
-    applyElimination(state, pid);
-    return state;
+
+    applyElimination(s, pid);
+    return { state: s, drawn };
 }
 
 
@@ -357,11 +383,25 @@ export function applyAction(state, actorId, action) {
         let s = structuredClone(state);
 
         // pending draw stack: take all and lose turn (keep your old logic)
+        // if (s.pendingDraw.amount > 0) {
+        //     const total = s.pendingDraw.amount;
+        //     s = drawMany(s, actorId, total);
+        //     s.pendingDraw = { amount: 0, min: 0 };
+        //     s.message = `Drew ${total} (stack) and lost the turn.`;
+        //     s.saidUNO[actorId] = false;
+        //     s.turnIndex = findNextActiveIndex(s, s.turnIndex, 1);
+        //     return s;
+        // }
+
         if (s.pendingDraw.amount > 0) {
-            const total = s.pendingDraw.amount;
-            s = drawMany(s, actorId, total);
-            s.pendingDraw = { kind: null, amount: 0 };
-            s.message = `Drew ${total} (stack) and lost the turn.`;
+            const requested = s.pendingDraw.amount;
+
+            const res = drawMany(s, actorId, requested);
+            s = res.state;
+
+            s.pendingDraw = { amount: 0, min: 0 };
+            s.message = `Drew ${res.drawn}${res.drawn < requested ? ` / ${requested}` : ""} (stack) and lost the turn.`;
+
             s.saidUNO[actorId] = false;
             s.turnIndex = findNextActiveIndex(s, s.turnIndex, 1);
             return s;
@@ -423,42 +463,88 @@ export function applyAction(state, actorId, action) {
             return { ...state, message: "You can't play that card." };
         }
 
+        // // remove from hand + discard
+        // s.hands[actorId] = hand.filter((c) => c.id !== cardId);
+        // s.discard.push(card);
+
+        // if (card.kind !== "wild" && card.kind !== "wild_draw4") {
+        //     s.currentColor = card.color;   
+        // }
+
+        // let skipNext = false;
+        // let msg = `Played ${cardLabel(card)}.`;
+
+        // // Wild -> pause for color choice
+        // // if (card.kind === "wild" || card.kind === "wild_draw4") {
+        // //     s.awaiting = { type: "wild", actorId, cardId: card.id };
+        // //     s.message = "Choose a color for the Wild.";
+        // //     return s; // IMPORTANT
+        // // } else {
+        // //     s.currentColor = card.color;
+        // // }
+
+
+        // if (card.kind === "wild" || card.kind === "wild_draw4") {
+        //     // ✅ If it's a draw kind, apply the draw stack NOW
+        //     if (isDrawKind(card.kind)) {
+        //         const add = drawAmountForKind(card.kind);
+        //         s.pendingDraw = {
+        //             kind: card.kind,
+        //             amount: (s.pendingDraw.amount || 0) + add,
+        //         };
+        //     }
+
+        //     // ✅ Pause for color choice
+        //     s.awaiting = { type: "wild", actorId, cardId: card.id };
+        //     s.message = "Choose a color for the Wild.";
+        //     return s; // now safe
+        // }
+
         // remove from hand + discard
         s.hands[actorId] = hand.filter((c) => c.id !== cardId);
         s.discard.push(card);
 
-        if (card.kind !== "wild" && card.kind !== "wild_draw4") {
-            s.currentColor = card.color;   
-        }
-
         let skipNext = false;
         let msg = `Played ${cardLabel(card)}.`;
 
-        // Wild -> pause for color choice
+        // ✅ NORMAL CARDS: set color immediately
+        if (card.kind !== "wild" && card.kind !== "wild_draw4") {
+            s.currentColor = card.color;
+        }
+
+        // ✅ WILD: apply draw stack if needed, then pause for color choice
         // if (card.kind === "wild" || card.kind === "wild_draw4") {
+        //     if (isDrawKind(card.kind)) {
+        //         // const add = drawAmountForKind(card.kind);
+        //         // s.pendingDraw = { kind: card.kind, amount: (s.pendingDraw.amount || 0) + add };
+
+
+        //         const add = drawAmountForKind(card.kind);
+        //         s.pendingDraw = {
+        //             amount: (s.pendingDraw.amount || 0) + add,
+        //             min: add, 
+        //         };
+        //     }
         //     s.awaiting = { type: "wild", actorId, cardId: card.id };
         //     s.message = "Choose a color for the Wild.";
-        //     return s; // IMPORTANT
-        // } else {
-        //     s.currentColor = card.color;
+        //     return s;
         // }
 
 
         if (card.kind === "wild" || card.kind === "wild_draw4") {
-            // ✅ If it's a draw kind, apply the draw stack NOW
             if (isDrawKind(card.kind)) {
                 const add = drawAmountForKind(card.kind);
                 s.pendingDraw = {
-                    kind: card.kind,
                     amount: (s.pendingDraw.amount || 0) + add,
+                    min: add,
                 };
             }
 
-            // ✅ Pause for color choice
             s.awaiting = { type: "wild", actorId, cardId: card.id };
             s.message = "Choose a color for the Wild.";
-            return s; // now safe
+            return s;
         }
+
 
         // 7 -> pause for swap choice
         if (card.kind === "num" && card.value === 7) {
@@ -482,9 +568,18 @@ export function applyAction(state, actorId, action) {
             msg += " (reverse)";
         }
 
+        // if (isDrawKind(card.kind)) {
+        //     const add = drawAmountForKind(card.kind);
+        //     s.pendingDraw = { kind: card.kind, amount: (s.pendingDraw.amount || 0) + add };
+        //     msg += ` (stack +${s.pendingDraw.amount})`;
+        // }
+
         if (isDrawKind(card.kind)) {
             const add = drawAmountForKind(card.kind);
-            s.pendingDraw = { kind: card.kind, amount: (s.pendingDraw.amount || 0) + add };
+            s.pendingDraw = {
+                amount: (s.pendingDraw.amount || 0) + add,
+                min: add,
+            };
             msg += ` (stack +${s.pendingDraw.amount})`;
         }
 
