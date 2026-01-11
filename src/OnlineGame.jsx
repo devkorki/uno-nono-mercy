@@ -72,6 +72,12 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
         socket.emit("game:end", { code: roomCode }, () => { });
     }
 
+
+    function resolveRoulette(color) {
+        socket.emit("game:action", { code: roomCode, action: { type: "resolve:roulette", chosenColor: color } }, () => { });
+    }
+
+
     useEffect(() => {
         if (!socket) return;
 
@@ -1142,6 +1148,27 @@ export default function OnlineGame({ socket, roomCode, me, game, onLeaveToLobby 
                     </div>
                 </div>
             )}
+
+
+            {isMyChoice && awaiting.type === "roulette" && (
+                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", display: "grid", placeItems: "center", zIndex: 9999 }}>
+                    <div style={{ background: "#0f0f10", border: "1px solid #2a2a2a", borderRadius: 16, padding: 14, width: 360 }}>
+                        <div style={{ fontWeight: 900, marginBottom: 10 }}>Roulette: choose a color</div>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            {COLORS.map((c) => (
+                                <button key={c} onClick={() => resolveRoulette(c)}
+                                    style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #3a3a3a", background: "#171717", color: "white" }}>
+                                    {c.toUpperCase()}
+                                </button>
+                            ))}
+                        </div>
+                        <div style={{ marginTop: 10, fontSize: 12, opacity: 0.65 }}>
+                            You’ll draw until you hit that color (wilds don’t count), then lose your turn.
+                        </div>
+                    </div>
+                </div>
+            )}
+
 
 
 
